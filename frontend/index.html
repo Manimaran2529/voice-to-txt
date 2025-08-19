@@ -2,46 +2,90 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>🎤 Smart Voice Translator</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>🎤 Smart Voice Translator</h1>
+  <header class="nav">
+    <div class="brand">
+      <span class="logo">🎤</span>
+      <span>Smart Voice Translator</span>
+    </div>
+    <div class="status" id="apiStatus">API: checking…</div>
+  </header>
 
-  <!-- Upload Audio Section -->
-  <form id="uploadForm">
-    <input type="file" name="audio" id="audioFile" accept="audio/*" required />
-    <select name="targetLang" id="targetLang">
-      <option value="en">English</option>
-      <option value="ta">Tamil</option>
-      <option value="hi">Hindi</option>
-      <option value="fr">French</option>
-    </select>
-    <button type="submit">Upload & Translate</button>
-  </form>
+  <main class="container">
 
-  <!-- Live Mic Translation -->
-  <div class="mic-section">
-    <h2>🎙 Live Mic Translation</h2>
-    <select id="liveTargetLang">
-      <option value="en">English</option>
-      <option value="ta">Tamil</option>
-      <option value="hi">Hindi</option>
-      <option value="fr">French</option>
-    </select>
-    <button id="startMic">Start Mic</button>
-    <button id="stopMic">Stop Mic</button>
-  </div>
+    <!-- FILE CARD -->
+    <section class="card">
+      <h2>📁 Upload Audio</h2>
+      <p class="muted">Transcribe any audio file and translate it.</p>
+      <form id="uploadForm" class="row">
+        <input type="file" id="audioFile" name="file" accept="audio/*" required />
+        <select id="targetLang" name="targetLang">
+          <option value="en">English</option>
+          <option value="ta">Tamil</option>
+          <option value="hi">Hindi</option>
+          <option value="fr">French</option>
+        </select>
+        <button type="submit" class="btn primary">Upload & Translate</button>
+      </form>
 
-  <!-- Output -->
-  <div id="output">
-    <h2>📝 Transcript:</h2>
-    <p id="transcript"></p>
-    <h2>🌍 Translation:</h2>
-    <p id="translation"></p>
-    <button id="speakBtn">🔊 Read Translation</button>
-    <a id="downloadLink" download="translation.txt">⬇️ Download Result</a>
-  </div>
+      <div class="results two-col">
+        <div>
+          <h3>📝 File Transcript</h3>
+          <div class="box" id="fileTranscript"></div>
+        </div>
+        <div>
+          <h3>🌍 File Translation</h3>
+          <div class="box" id="fileTranslation"></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a id="fileDownloadLink" class="btn warn" style="display:none;">⬇️ Download File Result</a>
+      </div>
+    </section>
+
+    <!-- MIC CARD -->
+    <section class="card">
+      <h2>🎙 Live Mic Translation</h2>
+      <p class="muted">Record live, then transcribe & translate.</p>
+
+      <div class="row">
+        <select id="liveTargetLang">
+          <option value="en">English</option>
+          <option value="ta">Tamil</option>
+          <option value="hi">Hindi</option>
+          <option value="fr">French</option>
+        </select>
+        <button id="startMic" class="btn success">Start Mic</button>
+        <button id="stopMic" class="btn danger" disabled>Stop Mic</button>
+      </div>
+
+      <div class="results two-col">
+        <div>
+          <h3>📝 Mic Transcript</h3>
+          <div class="box" id="micTranscript"></div>
+        </div>
+        <div>
+          <h3>🌍 Mic Translation</h3>
+          <div class="box" id="micTranslation"></div>
+        </div>
+      </div>
+
+      <div class="actions">
+        <a id="micDownloadLink" class="btn warn" style="display:none;">⬇️ Download Mic Result</a>
+        
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <span>Made with Whisper + Flask</span>
+  </footer>
 
   <script src="script.js"></script>
 </body>
