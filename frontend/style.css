@@ -1,137 +1,73 @@
-// ======= CONFIG =======
-const API_BASE = "http://127.0.0.1:5000"; // change if your Flask host/port differs
-
-// status pill
-(async () => {
-  const el = document.getElementById("apiStatus");
-  try {
-    const r = await fetch(`${API_BASE}/health`);
-    el.textContent = r.ok ? "API: online" : "API: offline";
-  } catch {
-    el.textContent = "API: offline";
-  }
-})();
-
-// ======= FILE UPLOAD =======
-const uploadForm = document.getElementById("uploadForm");
-const fileTranscriptEl   = document.getElementById("fileTranscript");
-const fileTranslationEl  = document.getElementById("fileTranslation");
-const fileDownloadLink   = document.getElementById("fileDownloadLink");
-
-uploadForm.addEventListener("submit", async (e) => {
-  e.preventDefault();
-  fileTranscriptEl.textContent = "Processing…";
-  fileTranslationEl.textContent = "";
-
-  const fd = new FormData(uploadForm);
-
-  try {
-    const res = await fetch(`${API_BASE}/upload-file`, { method: "POST", body: fd });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-
-    fileTranscriptEl.textContent  = data.transcript || "No transcript.";
-    fileTranslationEl.textContent = data.translation || "No translation.";
-
-    if (data.download) {
-      fileDownloadLink.href = `${API_BASE}${data.download}`;
-      fileDownloadLink.style.display = "inline-block";
-    }
-  } catch (err) {
-    fileTranscriptEl.textContent = `❌ ${err.message}`;
-    fileTranslationEl.textContent = "";
-    fileDownloadLink.style.display = "none";
-    console.error("File upload error:", err);
-  }
-});
-
-// ======= LIVE MIC =======
-const startBtn = document.getElementById("startMic");
-const stopBtn  = document.getElementById("stopMic");
-const liveTargetLang = document.getElementById("liveTargetLang");
-const micTranscriptEl  = document.getElementById("micTranscript");
-const micTranslationEl = document.getElementById("micTranslation");
-const micDownloadLink  = document.getElementById("micDownloadLink");
-
-let mediaRecorder;
-let micChunks = [];
-
-startBtn.addEventListener("click", async () => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    mediaRecorder = new MediaRecorder(stream);
-    micChunks = [];
-    micTranscriptEl.textContent = "Recording… speak now.";
-    micTranslationEl.textContent = "";
-
-    mediaRecorder.ondataavailable = (e) => { if (e.data.size) micChunks.push(e.data); };
-    mediaRecorder.onstop = async () => {
-      const blob = new Blob(micChunks, { type: "audio/webm" });
-      const fd = new FormData();
-      fd.append("file", blob, "mic.webm");
-      fd.append("targetLang", liveTargetLang.value);
-
-      micTranscriptEl.textContent = "Processing…";
-      try {
-        const res = await fetch(`${API_BASE}/upload-mic`, { method: "POST", body: fd });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-
-        micTranscriptEl.textContent  = data.transcript || "No transcript.";
-        micTranslationEl.textContent = data.translation || "No translation.";
-
-        if (data.download) {
-          micDownloadLink.href = `${API_BASE}${data.download}`;
-          micDownloadLink.style.display = "inline-block";
-        }
-      } catch (err) {
-        micTranscriptEl.textContent = `❌ ${err.message}`;
-        micTranslationEl.textContent = "";
-        micDownloadLink.style.display = "none";
-        console.error("Mic error:", err);
-      }
-    };
-
-    mediaRecorder.start();
-    startBtn.disabled = true; stopBtn.disabled = false;
-  } catch (err) {
-    alert("Microphone access was denied.");
-    console.error(err);
-  }
-});
-
-stopBtn.addEventListener("click", () => {
-  if (mediaRecorder && mediaRecorder.state !== "inactive") {
-    mediaRecorder.stop();
-    startBtn.disabled = false; stopBtn.disabled = true;
-  }
-});
-
-// ======= TTS for the latest translation (Mic preferred, else File) =======
-const speakBtn = document.getElementById("speakBtn");
-const langMap = { en: "en-US", ta: "ta-IN", hi: "hi-IN", fr: "fr-FR" };
-let voices = [];
-
-function pickVoice(langCode){
-  const tag = (langMap[langCode] || "en-US").toLowerCase();
-  return voices.find(v => v.lang.toLowerCase() === tag)
-      || voices.find(v => v.lang.toLowerCase().startsWith(tag.split("-")[0]))
-      || null;
+:root{
+  --bg: #eef2f7;
+  --card: #ffffff;
+  --text: #1f2d3d;
+  --muted: #6b7a90;
+  --border: #e5e9f2;
+  --primary: #2f80ed;
+  --success: #27ae60;
+  --danger: #e74c3c;
+  --warn: #f39c12;
+  --shadow: 0 10px 30px rgba(2,12,27,.08);
+  --radius: 16px;
 }
-window.speechSynthesis.onvoiceschanged = () => { voices = speechSynthesis.getVoices(); };
 
-speakBtn.addEventListener("click", () => {
-  const text = micTranslationEl.textContent.trim() || fileTranslationEl.textContent.trim();
-  if (!text) return;
+*{ box-sizing: border-box; }
 
-  // prefer mic target language if mic translation exists, else file’s target
-  const micHasText = !!micTranslationEl.textContent.trim();
-  const langCode = micHasText ? liveTargetLang.value : document.getElementById("targetLang").value;
+html,body{
+  margin:0; padding:0; background: var(--bg); color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+}
 
-  const u = new SpeechSynthesisUtterance(text);
-  const voice = pickVoice(langCode);
-  if (voice) { u.voice = voice; u.lang = voice.lang; } else { u.lang = langMap[langCode] || "en-US"; }
-  u.rate = 1; u.pitch = 1;
-  speechSynthesis.cancel();
-  speechSynthesis.speak(u);
-});
+.nav{
+  position: sticky; top:0; z-index: 10; backdrop-filter: blur(10px);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 22px; background: rgba(255,255,255,.6); border-bottom:1px solid var(--border);
+}
+.brand{ display:flex; gap:10px; align-items:center; font-weight:700; font-size:1.1rem;}
+.logo{ font-size:1.25rem;}
+.status{ font-size:.9rem; color: var(--muted); }
+
+.container{
+  max-width: 980px; margin: 32px auto; padding: 0 16px; display:grid; gap: 24px;
+}
+
+.card{
+  background: var(--card); border:1px solid var(--border); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 22px;
+}
+.card h2{ margin: 0 0 6px; }
+.muted{ color: var(--muted); margin-top: 0; }
+
+.row{ display:flex; flex-wrap: wrap; gap: 12px; align-items:center; }
+.row > *{ flex: 0 0 auto; }
+
+input[type="file"], select{
+  padding: 10px 12px; border:1px solid var(--border); border-radius: 10px; background:#fff; min-width: 200px;
+}
+
+.btn{
+  padding: 10px 16px; border: none; border-radius: 12px; cursor: pointer; background:#f0f3f7;
+  transition: transform .06s ease, box-shadow .2s ease;
+}
+.btn:hover{ transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,.08); }
+.btn.primary{ background: var(--primary); color:#fff; }
+.btn.success{ background: var(--success); color:#fff; }
+.btn.danger{ background: var(--danger); color:#fff; }
+.btn.warn{ background: var(--warn); color:#fff; }
+
+.results{ margin-top: 16px; }
+.two-col{ display:grid; gap:14px; grid-template-columns: repeat(2, minmax(0,1fr)); }
+@media (max-width: 760px){ .two-col{ grid-template-columns: 1fr; } }
+
+.box{
+  min-height: 80px; border:1px solid var(--border); background:#f7f9fc;
+  border-radius: 12px; padding: 12px; white-space: pre-wrap; word-break: break-word;
+  font-size: .98rem;
+}
+
+.actions{ display:flex; gap: 10px; align-items:center; margin-top: 12px; }
+
+.foot{
+  text-align:center; padding: 40px 12px; color: var(--muted);
+}
